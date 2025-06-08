@@ -24,6 +24,10 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  streamKey: {
+    type: String,
+    default: null,
+  },
 });
 
 userSchema.pre("save", function (next) {

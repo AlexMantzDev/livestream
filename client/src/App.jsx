@@ -1,16 +1,13 @@
 import React from "react";
-import {
-  BrowserRouter as Router,
-  Route,
-  Routes,
-  useNavigate,
-  Navigate,
-} from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Login from "./Auth/Pages/Login";
 import { useAuth } from "./Shared/Contexts/useAuth";
 import { useEffect } from "react";
 import axios from "axios";
 import PrivateRoute from "./Shared/Components/PrivateRoute";
+import Home from "./Home/Pages/Home";
+import Navbar from "./Shared/Components/Navbar";
+import Watch from "./Watch/Pages/Watch";
 
 const App = () => {
   const { user, setUser } = useAuth();
@@ -35,26 +32,14 @@ const App = () => {
   }, [setUser]);
 
   return (
-    <Router>
+    <BrowserRouter>
+      <Navbar />
       <Routes>
-        <Route path="/" element={<Navigate to={"/dashboard"} />} />
+        <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<h1>Register Page</h1>} />
-        <Route path="/dashboard" element={<h1>Dashboard</h1>} />
-        <Route
-          path="/profile"
-          element={
-            <PrivateRoute>
-              <h1>User Profile</h1>
-            </PrivateRoute>
-          }
-        />
-        <Route path="/settings" element={<h1>Settings</h1>} />
-        <Route path="/about" element={<h1>About Us</h1>} />
-        <Route path="/contact" element={<h1>Contact Us</h1>} />
-        {/* Add more routes as needed */}
+        <Route path="/watch/:recordingId" element={<Watch />} />
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
 };
 

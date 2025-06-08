@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import scuid from "scuid";
 
 import User from "../models/User.js"; // Assuming you have a User model defined
 
@@ -28,6 +29,7 @@ export const register = async (req, res) => {
       username,
       password,
       email,
+      streamKey: scuid(),
     });
 
     // Save the user to the database
@@ -45,6 +47,7 @@ export const register = async (req, res) => {
         id: newUser._id,
         username: newUser.username,
         email: newUser.email,
+        streamKey: newUser.streamKey,
       },
     });
   } catch (error) {
@@ -84,6 +87,7 @@ export const login = async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
+        streamKey: user.streamKey,
       },
     });
   } catch (error) {

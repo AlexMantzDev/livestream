@@ -37,7 +37,7 @@ const Login = () => {
       // Set the user in the context
       setUser(user);
 
-      navigate("/about"); // Redirect to the home page or dashboard after successful login
+      navigate("/"); // Redirect to the home page or dashboard after successful login
     } catch (error) {
       console.error(
         "Login failed:",
