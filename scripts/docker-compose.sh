@@ -1,5 +1,4 @@
-docker compose up -d \
-  --build \
-  --env-file ./.env \
+docker compose --env-file .env \
   --file ./docker-compose.yml \
-  --project-name livestream-app
+  --project-name livestream-app \
+   up -d --build
