@@ -17,6 +17,7 @@
     "express": "^5.1.0",
     "ffmpeg-static": "^5.2.0",
     "jsonwebtoken": "^9.0.2",
+    "live_streaming": "file:..",
     "mongoose": "^8.15.1",
     "node-media-server": "^4.0.18",
     "redis": "^5.5.6",

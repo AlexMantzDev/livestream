@@ -52,17 +52,14 @@ read -p "Redis port [6379]: " redisPort
 redisPort="${redisPort:-6379}"
 
 # Prompt for Redis username and password
-read -p "Redis username (optional): " redisUser
-if [ -n "$redisUser" ]; then
-  # If user provided a username, prompt until password is provided
-  while [ -z "$redisPass" ]; do
-    read -s -p "Redis password (required for user $redisUser): " redisPass
-    echo ""
-  done
-else
-  # If no username provided, skip password prompt
-  redisPass=""
-fi
+read -p "Redis username [default]: " redisUser
+redisUser="${redisUser:-default}"
+
+# Prompt user until Redis password is provided
+while [ -z "$redisPass" ]; do
+  read -s -p "Redis password (required): " redisPass
+  echo ""
+done
 
 # Determine Redis auth section
 if [ -n "$redisUser" ] && [ -n "$redisPass" ]; then
@@ -83,9 +80,18 @@ if [ ! -d "./server" ]; then
   mkdir -p "./server"
 fi
 
-# Write .env file
-envFile="./server/.env"
-cat > "$envFile" <<EOF
+
+# Create root .env file for Docker Compose
+rootEnvFile="./.env"
+cat > "$rootEnvFile" <<EOF
+MONGO_INITDB_ROOT_USERNAME=$mongoUser
+MONGO_INITDB_ROOT_PASSWORD=$mongoPass
+REDIS_PASSWORD=$redisPass
+EOF
+
+# Write .env file for the server
+serverEnvFile="./server/.env"
+cat > "$serverEnvFile" <<EOF
 PORT=$port
 INTERFACE=$interface
 MONGO_URI=mongodb://${monogoAuth}${mongoHost}:${mongoPort}/${mongoDB}?authSource=${mongoAuthDB}
@@ -93,6 +99,21 @@ REDIS_URL=redis://${redisAuth}${redisHost}:${redisPort}
 JWT_SECRET=$jwtSecret
 JWT_EXPIRATION=$jwtExpiration
 EOF
+
+# Run npm install in root
+echo ""
+echo "📦 Running npm install in root directory..."
+npm install
+
+# Run npm install in server
+echo ""
+echo "📦 Running npm install in ./server..."
+npm --prefix ./server install
+
+# Run npm install in client
+echo ""
+echo "📦 Running npm install in ./client..."
+npm --prefix ./client install
 
 echo ""
 echo "✅ .env file created!"
