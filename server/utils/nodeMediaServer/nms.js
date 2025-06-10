@@ -9,6 +9,15 @@ import fs from "fs";
 // Stores FFmpeg processes and file paths
 const activeStreams = new Map();
 
+const directories = ["./public/live", "./public/recordings"];
+
+directories.forEach((dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    console.log(`Created directory: ${dir}`);
+  }
+});
+
 const transcodeToMP4 = async (inputFile, outputFile) => {
   return new Promise((resolve, reject) => {
     // Start the FFMpeg process to transcode the FLV file to MP4
