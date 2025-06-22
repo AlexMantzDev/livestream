@@ -25,6 +25,7 @@
     "axios": "^1.9.0",
     "bootstrap": "^5.3.6",
     "bootstrap-icons": "^1.13.1",
+    "flv.js": "^1.6.2",
     "live_streaming": "file:..",
     "prop-types": "^15.8.1",
     "react": "^19.1.0",

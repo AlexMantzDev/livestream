@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
+import { ConnectionError } from "../../errorHandler/errorHandler.js";
 
 dotenv.config();
 
@@ -10,8 +11,7 @@ const connectDB = async () => {
       `MongoDB connected over ${conn.connection.host}:${conn.connection.port}`
     );
   } catch (error) {
-    console.error(`Error: ${error.message}`);
-    process.exit(1);
+    throw new ConnectionError(error.message);
   }
 };
 

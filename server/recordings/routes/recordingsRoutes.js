@@ -4,19 +4,9 @@ import authenticate from "../../auth/middleware/authenticate.js";
 
 const router = Router();
 
-router.get("/live/", recordingsController.findAllLiveRecordings);
-router.get("/live/findByid/:id", recordingsController.findLiveRecordingById);
-router.get(
-  "/live/findByUserId/:userId",
-  recordingsController.findLiveRecordingsByUserId
-);
-
-router.get("/", recordingsController.findAllPastRecordings);
-router.get("/findByid/:id", recordingsController.findPastRecordingById);
-router.get(
-  "/findByUserId/:userId",
-  recordingsController.findPastRecordingsByUserId
-);
+router.get("/", recordingsController.findAllRecordings);
+router.get("/findByid/:id", recordingsController.findRecordingById);
+router.get("/findByUserId/:userId", recordingsController.findRecordingByUserId);
 
 router.post("/new", authenticate, recordingsController.createRecording);
 

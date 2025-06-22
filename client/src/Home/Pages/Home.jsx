@@ -3,24 +3,23 @@ import axios from "axios";
 
 const HomePage = () => {
   const [isLoading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [live, setLive] = useState([]);
-  const [past, setPast] = useState([]);
+  const [recordings, setRecordings] = useState([]);
+
+  let liveRecordings = recordings.filter((rec) => !rec.endTime);
+  let pastRecordings = recordings.filter((rec) => rec.endTime);
 
   useEffect(() => {
     const fetchStreams = async () => {
       try {
         setLoading(true);
-        const [responseLive, responsePast] = await Promise.all([
-          axios.get("/api/recordings/live/"),
+        const [recordingsResponse] = await Promise.all([
           axios.get("/api/recordings/"),
         ]);
 
-        console.log("Live Streams:", responseLive.data);
-        console.log("Past Streams:", responsePast.data);
+        console.log("Recordings response:", recordingsResponse.data);
 
-        setLive(responseLive.data);
-        setPast(responsePast.data);
+        setRecordings(recordingsResponse.data);
+
         setLoading(false);
       } catch (error) {
         console.error("Error fetching streams:", error);
@@ -42,13 +41,13 @@ const HomePage = () => {
           <section className="container py-4">
             <h1 className="mb-4">Live Streams</h1>
 
-            {live.length === 0 ? (
+            {liveRecordings.length === 0 ? (
               <div className="alert alert-info">
                 No streams available right now.
               </div>
             ) : (
               <div className="row">
-                {live.map((stream) => (
+                {liveRecordings.map((stream) => (
                   <div key={stream._id} className="col-md-4 mb-4">
                     <div className="card h-100">
                       <div className="card-body">
@@ -70,12 +69,12 @@ const HomePage = () => {
           <section className="container py-4">
             <h2 className="mb-4">Past Streams</h2>
 
-            {past.length === 0 && (
+            {pastRecordings.length === 0 && (
               <div className="alert alert-info">No past streams available.</div>
             )}
-            {past.length > 0 && (
+            {pastRecordings.length > 0 && (
               <div className="row">
-                {past.map((vod) => (
+                {pastRecordings.map((vod) => (
                   <div key={vod._id} className="col-md-4 mb-4">
                     <div className="card h-100">
                       <div className="card-body">
