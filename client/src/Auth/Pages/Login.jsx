@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-import { useAuth } from "../../Shared/Contexts/useAuth";
+import { useAuth } from "../../Shared/Contexts/Auth/AuthContext";
 
 const Login = () => {
   const { user, setUser } = useAuth();
@@ -29,13 +29,12 @@ const Login = () => {
         },
       });
 
-      const { token, user } = response.data;
-
-      // Store the token in localStorage or a cookie
-      localStorage.setItem("token", token);
+      const { user } = response.data;
 
       // Set the user in the context
       setUser(user);
+
+      console.log("Login successful:", user);
 
       navigate("/"); // Redirect to the home page or dashboard after successful login
     } catch (error) {

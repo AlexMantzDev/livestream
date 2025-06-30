@@ -4,6 +4,7 @@ import * as watchController from "../controllers/watchController.js";
 
 const router = Router();
 
-router.get("/:id", watchController.watchVideo);
+router.get("/:id", watchController.playRecording);
+router.get("/live/:id", watchController.playLiveStream);
 
 export default router;

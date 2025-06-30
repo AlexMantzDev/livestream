@@ -9,10 +9,10 @@ export const redisClient = createClient({
 
 redisClient.on("error", (err) => console.error("Redis Client Error", err));
 
-const connectRedis = async () => {
+const connectToRedis = async () => {
   try {
     await redisClient.connect();
-    const connection = new URL(redisClient.options.url);
+    const connection = new URL(process.env.REDIS_URL);
     console.log(
       `Redis Connnected over ${connection.hostname}:${connection.port}`
     );
@@ -22,4 +22,4 @@ const connectRedis = async () => {
   }
 };
 
-export default connectRedis;
+export default connectToRedis;

@@ -1,7 +1,10 @@
 import Recording from "../../recordings/models/Recording.js";
 import fs from "fs";
+import { request } from "undici";
 
-export const watchVideo = async (req, res) => {
+import User from "../../auth/models/User.js";
+
+export const playRecording = async (req, res) => {
   const { id } = req.params;
   const range = req.headers.range;
 
@@ -61,5 +64,36 @@ export const watchVideo = async (req, res) => {
   } catch (error) {
     console.error("Error watching video:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const playLiveStream = async (req, res) => {
+  const recordingId = req.params.id;
+
+  try {
+    // Find the recording and user associated with the stream
+    const recording = await Recording.findById(recordingId);
+    if (!recording) {
+      return res.status(404).send("Stream not found");
+    }
+
+    // Find the user by userId in the recording
+    const user = await User.findById(recording.userId);
+    if (!user || !user.streamKey) {
+      return res.status(404).send("Invalid user");
+    }
+
+    // Construct the stream URL using the user's stream key
+    const streamKey = user.streamKey;
+    const streamUrl = `http://127.0.0.1:8000/live/${streamKey}.flv`;
+
+    // Make a request to the stream URL
+    const { body, statusCode, headers } = await request(streamUrl);
+
+    res.setHeader("Content-Type", "video/x-flv");
+    body.pipe(res);
+  } catch (err) {
+    console.error("Proxy error:", err.message);
+    res.status(500).send("Stream error");
   }
 };

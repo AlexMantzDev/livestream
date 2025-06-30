@@ -12,16 +12,23 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
     "bcrypt": "^6.0.0",
+    "bullmq": "^5.56.0",
+    "connect-redis": "^9.0.0",
+    "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "express-session": "^1.18.1",
     "ffmpeg-static": "^5.2.0",
     "jsonwebtoken": "^9.0.2",
     "live_streaming": "file:..",
     "mongoose": "^8.15.1",
     "node-media-server": "^4.0.18",
     "redis": "^5.5.6",
-    "scuid": "^1.1.0"
+    "scuid": "^1.1.0",
+    "socket.io": "^4.8.1",
+    "undici": "^7.11.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

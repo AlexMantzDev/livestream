@@ -4,7 +4,7 @@ import { ConnectionError } from "../../errorHandler/errorHandler.js";
 
 dotenv.config();
 
-const connectDB = async () => {
+const connectToMongo = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI);
     console.log(
@@ -15,4 +15,4 @@ const connectDB = async () => {
   }
 };
 
-export default connectDB;
+export default connectToMongo;

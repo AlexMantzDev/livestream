@@ -99,6 +99,17 @@ const config = {
     port: 8000,
     allow_origin: "*",
   },
+  trans: {
+    ffmpeg: ffmpegPath,
+    tasks: [
+      {
+        app: "live",
+        hls: false,
+        dash: false,
+        flv: true, // Enable FLV output
+      },
+    ],
+  },
 };
 
 // Initialize NodeMediaServer with the configuration

@@ -35,20 +35,17 @@ export const register = async (req, res) => {
     // Save the user to the database
     await newUser.save();
 
-    // Generate a JWT token
-    const token = jwt.sign({ id: newUser._id }, JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    // Log the user in
+    req.session.user = {
+      id: newUser._id,
+      username: newUser.username,
+      email: newUser.email,
+      streamKey: newUser.streamKey,
+    };
 
     res.status(201).json({
       message: "User registered successfully",
-      token: token,
-      user: {
-        id: newUser._id,
-        username: newUser.username,
-        email: newUser.email,
-        streamKey: newUser.streamKey,
-      },
+      user: req.session.user,
     });
   } catch (error) {
     console.error(error);
@@ -77,18 +74,17 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Generate a JWT token
-    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: "1h" });
+    // Store user information in the session
+    req.session.user = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      streamKey: user.streamKey,
+    };
 
     res.status(200).json({
       message: "Login successful",
-      token: token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        streamKey: user.streamKey,
-      },
+      user: req.session.user,
     });
   } catch (error) {
     console.error(error);
@@ -97,15 +93,19 @@ export const login = async (req, res) => {
 };
 
 export const logout = (req, res) => {
-  // Invalidate the token by removing it from the client side
-  // This is a simple implementation, in a real-world scenario you might want to handle token blacklisting or session management
-  res.setHeader("Authorization", "");
-  return res.status(200).json({ message: "Logout successful" });
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Logout error:", err);
+      return res.status(500).json({ message: "Logout failed" });
+    }
+    res.clearCookie("connect.sid");
+    return res.status(200).json({ message: "Logout successful" });
+  });
 };
 
 export const verifyUser = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password");
+    const user = await User.findById(req.session.user.id).select("-password");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }

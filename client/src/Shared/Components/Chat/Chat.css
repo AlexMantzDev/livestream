@@ -1,0 +1,27 @@
+.chat-container {
+  width: 400px;
+  background-color: #222;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.chat-wrapper {
+  flex-shrink: 0;
+  transition: width 0.3s ease;
+  overflow: hidden;
+
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.chat-wrapper.open {
+  width: 400px;
+}
+
+.chat-wrapper.closed {
+  width: 0;
+}

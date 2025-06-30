@@ -1,13 +1,15 @@
 import React from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Login from "./Auth/Pages/Login";
-import { useAuth } from "./Shared/Contexts/useAuth";
+import { useAuth } from "./Shared/Contexts/Auth/AuthContext";
 import { useEffect } from "react";
 import axios from "axios";
 import PrivateRoute from "./Shared/Components/PrivateRoute";
 import Home from "./Home/Pages/Home";
 import Navbar from "./Shared/Components/Navbar";
-import Watch from "./Watch/Pages/Watch";
+import { Profile } from "./Profile/Pages/Profile";
+import { Watch } from "./Watch/Pages/Watch";
+import SocketTest from "./Shared/socketTest";
 
 const App = () => {
   const { user, setUser } = useAuth();
@@ -33,12 +35,18 @@ const App = () => {
 
   return (
     <BrowserRouter>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/watch/:recordingId" element={<Watch />} />
-      </Routes>
+      <div className="d-flex flex-column min-vh-100">
+        <Navbar />
+        <div className="flex-grow-1">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/watch/:recordingId" element={<Watch />} />
+            <Route path="/profile/:userId" element={<Profile />} />
+          </Routes>
+        </div>
+      </div>
+      <SocketTest />
     </BrowserRouter>
   );
 };
