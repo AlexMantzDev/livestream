@@ -5,16 +5,19 @@ import { fileURLToPath } from "url";
 import session from "express-session";
 import { RedisStore } from "connect-redis";
 import cors from "cors";
-
-import connectToMongo from "./utils/database/databaseConnect.js";
-import connectToRedis, { redisClient } from "./utils/database/redisClient.js";
 import { createServer } from "http";
 
-import authRoutes from "./auth/routes/authRoutes.js";
+import connectToMongo from "./lib/database/databaseConnect.js";
+import redisClient from "./lib/database/redisClient.js";
+
+import authRoutes from "./api/auth/routes/authRoutes.js";
 import watchRoutes from "./watch/routes/watchRoutes.js";
-import recordingsRoutes from "./recordings/routes/recordingsRoutes.js";
-import startNodeMediaServer from "./utils/nodeMediaServer/nms.js";
-import { initSocket } from "./utils/webSockets/socket.js";
+import startNodeMediaServer from "./lib/nodeMediaServer/nms.js";
+import { initSocket } from "./lib/webSockets/socket.js";
+
+import { makeStreamService } from "./lib/services/stream/stream.service.js";
+import { registerRecordingHandlers } from "./lib/events/handlers/recording.handlers.js";
+import { EventBus } from "./lib/events/eventBus.js";
 
 // Load environment variables
 dotenv.config();
@@ -34,8 +37,16 @@ const app = express();
 // Create the HTTP server and Socket.IO instance
 const httpServer = createServer(app);
 
-// Set up middleware for json parsing
-app.use(express.json());
+// Connect to MongoDB
+await connectToMongo();
+
+// Initialize the event bus and register event handlers
+const eventBus = new EventBus();
+registerRecordingHandlers(eventBus);
+
+// Initialize the stream service
+const streamService = makeStreamService(eventBus);
+app.locals.streamService = streamService;
 
 // Set up middleware for session management
 const sessionMiddleware = session({
@@ -50,7 +61,16 @@ const sessionMiddleware = session({
   },
 });
 
-// Set up CORS headers
+// Initialize Socket.IO with session support
+await initSocket(httpServer, sessionMiddleware, REDIS_URL);
+
+// Start the NodeMediaServer
+startNodeMediaServer(streamService, redisClient);
+
+// Set up middleware for json parsing
+app.use(express.json());
+
+// Set up CORS settings
 app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:3000",
@@ -61,24 +81,19 @@ app.use(
 // Use the session middleware
 app.use(sessionMiddleware);
 
+// Set up API routes
 app.use("/api/auth", authRoutes);
-app.use("/api/recordings", recordingsRoutes);
 app.use("/api/watch", watchRoutes);
 
+// Serve static files from the client build directory
 app.use(express.static(path.join(__dirname, "..", "client", "dist")));
 
-console.log(
-  `Static files served from: ${path.join(__dirname, "..", "client", "dist")}`
-);
-
+// Serve the index.html file for all other routes
 app.get("/{*any}", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "client", "dist", "index.html"));
 });
 
-httpServer.listen(PORT, INTERFACE, async () => {
-  await connectToMongo();
-  await connectToRedis();
-  await initSocket(httpServer, sessionMiddleware, REDIS_URL);
-  startNodeMediaServer();
+// Start the HTTP server and initialize the Socket.IO instance
+httpServer.listen(PORT, INTERFACE, () => {
   console.log(`Express server listening on ${INTERFACE}:${PORT}`);
 });

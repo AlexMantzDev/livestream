@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import { ConnectionError } from "../../errorHandler/errorHandler.js";
+import { ConnectionError } from "../errorHandler/errorHandler.js";
 
 dotenv.config();
 

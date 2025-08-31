@@ -4,7 +4,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
+    "start:server": "node server.js",
+    "start:workers": "node ./lib/workers",
     "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -21,11 +22,11 @@
     "express": "^5.1.0",
     "express-session": "^1.18.1",
     "ffmpeg-static": "^5.2.0",
+    "ioredis": "^5.6.1",
     "jsonwebtoken": "^9.0.2",
     "live_streaming": "file:..",
     "mongoose": "^8.15.1",
     "node-media-server": "^4.0.18",
-    "redis": "^5.5.6",
     "scuid": "^1.1.0",
     "socket.io": "^4.8.1",
     "undici": "^7.11.0"

@@ -1,8 +1,8 @@
-import Recording from "../../recordings/models/Recording.js";
+import Recording from "../../lib/models/Recording.js";
 import fs from "fs";
 import { request } from "undici";
 
-import User from "../../auth/models/User.js";
+import User from "../../api/auth/models/User.js";
 
 export const playRecording = async (req, res) => {
   const { id } = req.params;

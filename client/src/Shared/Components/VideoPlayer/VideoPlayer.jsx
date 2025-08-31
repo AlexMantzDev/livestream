@@ -16,6 +16,7 @@ const VideoPlayer = ({ onToggleChat, chatVisible }) => {
   const hideTimeoutRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLive, setIsLive] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -255,8 +256,10 @@ const VideoPlayer = ({ onToggleChat, chatVisible }) => {
 
     if (!document.fullscreenElement) {
       wrapper.requestFullscreen();
+      setIsFullscreen(true);
     } else {
       document.exitFullscreen();
+      setIsFullscreen(false);
     }
   };
 
@@ -324,14 +327,36 @@ const VideoPlayer = ({ onToggleChat, chatVisible }) => {
           }`}
         >
           <div className="left-controls">
-            <button onClick={handlePlayPause}>{isPlaying ? "⏸️" : "▶️"}</button>
+            <button onClick={handlePlayPause}>
+              {isPlaying ? (
+                <i class="bi bi-pause"></i>
+              ) : (
+                <i class="bi bi-play"></i>
+              )}
+            </button>
 
             <span className="video-time-display">
               {isLive
                 ? "🔴 LIVE"
                 : `${formatTime(currentTime)} / ${formatTime(duration)}`}
             </span>
-            <button onClick={handleToggleMute}>{isMuted ? "🔇" : "🔈"}</button>
+            <button onClick={skipBackward}>
+              <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
+            <button onClick={skipForward}>
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <button onClick={handleToggleMute}>
+              {isMuted ? (
+                <i class="bi bi-volume-mute"></i>
+              ) : volume > 0.5 ? (
+                <i class="bi bi-volume-up"></i>
+              ) : volume > 0 ? (
+                <i class="bi bi-volume-down"></i>
+              ) : (
+                <i class="bi bi-volume-off"></i>
+              )}
+            </button>
             <input
               type="range"
               min={0}
@@ -345,7 +370,11 @@ const VideoPlayer = ({ onToggleChat, chatVisible }) => {
 
           <div className="right-controls">
             <button onClick={onToggleChat}>
-              {chatVisible ? "Hide Chat 💬" : "Open Chat 💬"}
+              {chatVisible ? (
+                <i class="bi bi-x-circle"></i>
+              ) : (
+                <i class="bi bi-chat-left-dots"></i>
+              )}
             </button>
             <select
               value={playbackRate}
@@ -358,7 +387,13 @@ const VideoPlayer = ({ onToggleChat, chatVisible }) => {
               <option value="1.25">1.25x</option>
               <option value="1.5">1.5x</option>
             </select>
-            <button onClick={handleToggleFullscreen}>Full</button>
+            <button onClick={handleToggleFullscreen}>
+              {!isFullscreen ? (
+                <i class="bi bi-fullscreen"></i>
+              ) : (
+                <i class="bi bi-fullscreen-exit"></i>
+              )}
+            </button>
           </div>
         </div>
       </div>

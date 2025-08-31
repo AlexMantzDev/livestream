@@ -1,16 +1,17 @@
 import NodeMediaServer from "node-media-server";
-import User from "../../auth/models/User.js";
+import User from "../../api/auth/models/User.js";
 import { spawn } from "child_process";
 import ffmpegPath from "ffmpeg-static";
-import { redisClient } from "../database/redisClient.js";
-import Recording from "../../recordings/models/Recording.js";
+
 import fs from "fs";
+import { transcodeQueue } from "../queue/queue.js";
+import path from "path";
 
 // Stores FFmpeg processes and file paths
 const activeStreams = new Map();
 
+// Ensure the necessary directories exist
 const directories = ["./public/live", "./public/recordings"];
-
 directories.forEach((dir) => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -18,70 +19,31 @@ directories.forEach((dir) => {
   }
 });
 
-const transcodeToMP4 = async (inputFile, outputFile) => {
-  return new Promise((resolve, reject) => {
-    // Start the FFMpeg process to transcode the FLV file to MP4
-    const ffmpegProcess = spawn(ffmpegPath, [
-      "-err_detect",
-      "ignore_err",
-      "-i",
-      inputFile,
-      "-c:v",
-      "libx264",
-      "-c:a",
-      "aac",
-      "-movflags",
-      "faststart",
-      "-y",
-      outputFile,
-    ]);
-
-    // Handle FFmpeg process output
-    ffmpegProcess.stdout.on("data", (data) =>
-      console.log(`FFmpeg stdout: ${data}`)
-    );
-
-    // Handle FFmpeg process errors
-    ffmpegProcess.stderr.on("data", (data) =>
-      console.error(`FFmpeg stderr: ${data}`)
-    );
-
-    // Handle FFmpeg process close event
-    ffmpegProcess.on("close", (code) => {
-      if (code === 0) {
-        // Transcoding successful
-        resolve(outputFile);
-      } else {
-        // Transcoding failed
-        reject(new Error(`FFmpeg process exited with code ${code}`));
-      }
-    });
-  });
-};
-
 // Start the FFmpeg process to record the stream as FLV
-const recordToFlv = (inputUrl, outputFile) => {
-  const ffmpegProcess = spawn(ffmpegPath, [
+const recordToFlv = (inputUrl, fileName) => {
+  // Define the file path for the FLV recording
+  const filePath = path.resolve("public", "live", `${fileName}.flv`);
+
+  // Start the FFmpeg process to record the stream
+  const ffmpeg = spawn(ffmpegPath, [
+    "-y",
     "-i",
     inputUrl,
     "-c",
     "copy",
     "-f",
     "flv",
-    outputFile,
+    filePath,
   ]);
 
   // Handle FFmpeg process output
-  ffmpegProcess.stdout.on("data", (data) =>
-    console.log(`FFmpeg stdout: ${data}`)
-  );
+  ffmpeg.stdout.on("data", (data) => console.log(`FFmpeg stdout: ${data}`));
 
   // Handle FFmpeg process errors
-  ffmpegProcess.stderr.on("data", (data) =>
-    console.error(`FFmpeg stderr: ${data}`)
-  );
+  ffmpeg.stderr.on("data", (data) => console.error(`FFmpeg stderr: ${data}`));
 
-  return ffmpegProcess;
+  // Return the FFmpeg process for later management
+  return { ffmpeg, filePath };
 };
 
 // Configuration for NodeMediaServer
@@ -113,7 +75,7 @@ const config = {
 };
 
 // Initialize NodeMediaServer with the configuration
-const startNodeMediaServer = () => {
+export default function startNodeMediaServer(streamService, redisClient) {
   console.log("NodeMediaServer is starting...");
   const nms = new NodeMediaServer(config);
   nms.run();
@@ -142,13 +104,12 @@ const startNodeMediaServer = () => {
     const id = session.id;
     const streamPath = session.streamPath;
     const streamKey = streamPath.split("/").pop();
+    const streamConnectionUrl = `rtmp://localhost:1935${streamPath}`;
+    const fileName = `${streamKey}-${Date.now()}`;
 
     console.log(`[${id}] Stream started, recording...`);
 
-    const inputUrl = `rtmp://localhost:1935${streamPath}`;
-    const outputFile = `./public/live/${streamKey}-${Date.now()}.flv`;
-
-    // Check if the stream key is valid
+    // Get the user based on the stream key
     const user = await User.findOne({ streamKey: streamKey });
     if (!user) {
       console.error(`No user found for stream key: ${streamKey}`);
@@ -156,44 +117,37 @@ const startNodeMediaServer = () => {
       return;
     }
 
-    // Look for an existing entity for a recording that hasn't been started yet
-    const record = await Recording.findOneAndUpdate(
-      {
-        userId: user._id,
-        startTime: null,
-      },
-      {
-        userId: user._id,
-        startTime: new Date(),
-        flvFilePath: outputFile,
-      },
-      { new: true, upsert: true }
-    );
-    if (!record) {
-      console.error(
-        `Failed to create or update recording for user: ${user._id}`
-      );
-      session.socket.destroy();
-      return;
-    }
-
     // start the process to record the stream using FFmpeg
-    const ffmpegProcess = recordToFlv(inputUrl, outputFile);
+    const { ffmpeg, filePath: flvFilePath } = recordToFlv(
+      streamConnectionUrl,
+      fileName
+    );
+
+    // Save the recording to the database
+    const { recordingId } = await streamService.beginStream(user._id, {
+      title: "undefined",
+      description: "undefined",
+      flvPath: flvFilePath,
+    });
+    console.log(`Recording started with ID: ${recordingId}`);
 
     // Save process to activeStreams map
     activeStreams.set(id, {
-      ffmpegProcess,
-      outputFile,
+      recordingId,
+      ffmpeg,
+      fileName,
+      flvFilePath,
     });
 
     // Save live stream info to Redis
-    await redisClient.setEx(
+    await redisClient.set(
       `live:${streamKey}`,
-      3600, // 1 hour expiration
       JSON.stringify({
         sessionId: id,
         createdAt: Date.now(),
-      })
+      }),
+      "EX",
+      3600 // 1 hour expiration
     );
   });
 
@@ -223,7 +177,8 @@ const startNodeMediaServer = () => {
     const active = activeStreams.get(id);
     if (active) {
       // Stop the FFmpeg process
-      active.ffmpegProcess.on("exit", (code) => {
+      console.log(active.ffmpeg);
+      active.ffmpeg.on("exit", (code) => {
         if (code === 0) {
           console.log(
             `FFmpeg process for stream ${streamKey} exited successfully.`
@@ -234,58 +189,43 @@ const startNodeMediaServer = () => {
           );
         }
       });
-      active.ffmpegProcess.kill("SIGTERM");
+      active.ffmpeg.kill("SIGTERM");
+
+      // Define paths for FLV and MP4 files
+      const flvPath = path.resolve("public", "live", `${active.fileName}.flv`);
+      const mp4Path = path.resolve(
+        "public",
+        "recordings",
+        `${active.fileName}.mp4`
+      );
 
       // Remove from activeStreams
       activeStreams.delete(id);
       console.log(`Recording stopped for stream: ${streamPath}`);
 
-      // Get the output file path and MP4 file name
-      const outputFile = active.outputFile;
-      const mp4File = `./public/recordings/${streamKey}-${Date.now()}.mp4`;
-
       // Transcode the FLV file to MP4
-      console.log(`Starting transcoding to MP4: ${mp4File}`);
+      console.log(`Starting transcoding to MP4: ${mp4Path}`);
       try {
-        await transcodeToMP4(outputFile, mp4File);
-        console.log(`Transcoding completed: ${mp4File}`);
-
-        // Remove the original FLV file
-        fs.unlink(outputFile, (error) => {
-          if (error) {
-            console.error(`Error removing FLV file: ${error.message}`);
-          } else {
-            console.log(`FLV file removed: ${outputFile}`);
-          }
+        await transcodeQueue.add("transcode", {
+          recordingId: active.recordingId,
+          flvPath,
+          mp4Path,
+          userId: user._id.toString(),
+          streamKey: streamKey,
         });
       } catch (error) {
         console.error(`Error during transcoding: ${error.message}`);
         return;
       }
-
+      console.log(
+        `Transcoding job added for recording ID: ${active.recordingId}`
+      );
       // Update the recording in the database
-      console.log(`Updating recording in database for stream: ${streamKey}`);
-      try {
-        await Recording.findOneAndUpdate(
-          {
-            userId: user._id,
-            startTime: { $ne: null },
-            endTime: null,
-          },
-          {
-            endTime: new Date(),
-            flvFilePath: null,
-            mp4FilePath: mp4File,
-          },
-          { new: true }
-        );
-      } catch (error) {
-        console.error(`Error updating recording in database: ${error.message}`);
-      }
+      await streamService.endStream(active.recordingId, {
+        mp4FilePath: mp4Path,
+      });
     } else {
       console.log(`No active recording found for stream: ${streamPath}`);
     }
   });
-};
-
-export default startNodeMediaServer;
+}
